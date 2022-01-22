@@ -1,0 +1,75 @@
+
+ENV JAVA_HOME /usr/local/java/java-se-8u41-ri
+ENV PATH $PATH:$JAVA_HOME/bin
+
+ENV HADOOP_HOME /usr/local/hadoop
+ENV HADOOP_INSTALL $HADOOP_HOME
+
+ENV HDFS_NAMENODE_USER root
+ENV HDFS_DATANODE_USER root
+ENV HDFS_SECONDARYNAMENODE_USER root
+ENV YARN_RESOURCEMANAGER_USER root
+ENV YARN_NODEMANAGER_USER root
+
+
+
+ENV HADOOP_COMMON_HOME $HADOOP_HOME
+ENV HADOOP_HDFS_HOME $HADOOP_HOME
+ENV HADOOP_MAPRED_HOME $HADOOP_HOME
+ENV HADOOP_YARN_HOME $HADOOP_HOME
+
+ENV HADOOP_CONF_DIR /usr/local/hadoop/etc/hadoop
+ENV HADOOP_COMMON_LIB_NATIVE_DIR $HADOOP_HOME/lib/native
+ENV HADOOP_OPTS "-Djava.library.path=$HADOOP_HOME/lib/native"
+ENV PATH $PATH:$HADOOP_HOME/sbin:$HADOOP_HOME/bin
+RUN cd $HADOOP_HOME 
+
+RUN echo JAVA_HOME=$JAVA_HOME >> $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+RUN echo HADOOP_HOME=$HADOOP_HOME >> $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+
+
+
+# workingaround docker.io build error
+RUN ls -l /usr/local/hadoop/etc/hadoop/*-env.sh
+USER root
+RUN cd /usr/local/hadoop/etc/hadoop/ && chmod -x *-env.sh
+RUN ls -l $HADOOP_HOME/etc/hadoop/*-env.sh
+
+
+
+ADD core-site.xml.template $HADOOP_HOME/etc/hadoop/core-site.xml.template
+RUN sed s/HOSTNAME/localhost/ /usr/local/hadoop/etc/hadoop/core-site.xml.template > /usr/local/hadoop/etc/hadoop/core-site.xml
+ADD hdfs-site.xml $HADOOP_HOME/etc/hadoop/hdfs-site.xml
+ADD mapred-site.xml $HADOOP_HOME/etc/hadoop/mapred-site.xml
+ADD yarn-site.xml $HADOOP_HOME/etc/hadoop/yarn-site.xml
+
+
+
+
+
+## init.sh
+RUN $HADOOP_HOME/bin/hdfs namenode -format
+RUN $HADOOP_HOME/sbin/start-dfs.sh
+RUN $HADOOP_HOME/sbin/start-yarn.sh
+RUN $HADOOP_HOME/sbin/mr-jobhistory-daemon.sh start historyserver
+
+
+
+## bootstrap.sh
+RUN ls -l && cd  $HADOOP_HOME/etc && ls 
+RUN cd $HADOOP_HOME/etc/hadoop/ && chmod -x hadoop-env.sh
+RUN cd /usr/local/hadoop/etc/hadoop/ && ls -a && chmod -x hadoop-env.sh && sh hadoop-env.sh
+RUN rm /tmp/*.pid
+RUN $HADOOP_HOME/sbin/start-dfs.sh && $HADOOP_HOME/sbin/start-yarn.sh
+RUN $HADOOP_HOME/sbin/mr-jobhistory-daemon.sh start historyserver
+
+
+
+
+
+
+
+
+ENV PATH $PATH:$HADOOP_HOME/bin
+
+
